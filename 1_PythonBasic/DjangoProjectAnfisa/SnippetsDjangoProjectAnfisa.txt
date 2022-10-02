@@ -1,0 +1,139 @@
+6. Прописать 'homepage', в INSTALLED_APPS
+
+7. В view homepage пропистать
+	def index(request):
+    	return HttpResponse('Анфиса для друзей')
+
+9. В проекте anfisa4friends/urls.py привязать homepage
+	from django.urls import include, path
+
+   	path('', include('homepage.urls'))
+   	И
+   	В приложении homepage/urls.py привязать index
+   	from django.urls import path
+
+   	path('', views.index)
+
+11. Прописать 'icecream', в INSTALLED_APPS
+	В проекте anfisa4friends/urls.py привязать icecream
+  	path('icecream/', include('icecream.urls'))	
+  	И
+  	В приложении icecream/urls.py привязать icecream_list и импортировать
+  	from . import views
+  	path('', views.icecream_list)
+  	И
+  	icecream/view.py
+  	def icecream_list(request):
+    	return HttpResponse('Здесь будет список сортов мороженого')
+
+12. Добавить список мороженоо в view icecream
+	from .models import icecream_db
+
+	def icecream_list(request):
+    icecreams = ''
+    for i in range(len(icecream_db)):
+        icecreams += f'{icecream_db[i]["name"]} :: '
+    return HttpResponse(f'Список сортов мороженого: {icecreams}')
+
+2. Добавить список мороженого из icecream/models
+def icecream_list(request):
+    icecreams = ''
+    for i in icecream_db:
+        icecreams += i['name'] + ' :: '
+    return HttpResponse(f'Список сортов мороженого: {icecreams}')
+
+3. В icecream-list.html сделайте строку «Золотое мороженое»
+	<a href="icecream-gold.html">Золотое мороженое</a>
+
+6. Templates Создание шаблона для HTML
+	В функции icecream_list(request) сделать список из названий мороженого :: > <br>
+	СОздаем словарь контекст
+	context = {
+        'icecreams': icecreams,
+    }
+    return render(request, 'icecream/icecream-list.html', context) возвращаем рендер с аргументами
+
+    В icecream-list.html добавить {{ icecreams|safe }}
+
+1. В файле icecream/urls.py удалите path('', views.icecream_list)
+	В файле icecream/views.py удалите view-функцию icecream_list()
+	Удалите файл templates/icecream/icecream-list.html (правый клик по названию файла)
+	В файле templates/icecream/icecream-detail.html удалите строку <a href="../">Вернуться к списку</a> и тег <br> перед ней.
+
+3. Выведите на главную страницу проекта его город и погоду в этом городе
+	homepage/views
+
+	from anfisa.services import what_weather
+
+	def index(request):
+    icecreams = ''
+    friends = ''
+
+    for friend in friends_db:
+        # узнайте город друга
+        city = friends_db[friend]
+        # получите погоду из функции what_weather
+        weather = what_weather(city)
+        # здесь через f-строку объедините переменные в одну строчку:
+        # имя :: город :: погода
+        friends += f'{friend} :: {city} :: {weather}<br>
+
+4. Перенесите в форму список сортов мороженого, чтобы на сервер можно было одновременно 
+	отправить имя друга и название мороженого через задио кнопки
+    # ИЗ списка ссылок icecreams сделаем список чекбоксов
+    for i in range(len(icecream_db)):
+        ice_form = (f'<input type="radio" name="icecream" required ' 
+                    f'value="{icecream_db[i]["name"]}"> {icecream_db[i]["name"]}')
+
+        ice_link = f'<a href="icecream/{i}/">Узнать состав</a>'
+        icecreams += f'{ice_form} | {ice_link} <br>'
+
+    Соберем все вместе выбранного друга мороженое погоду  и город
+        if request.method == 'POST':
+        # Извлекли из запроса имя друга
+        selected_friend = request.POST['friend']
+        # В переменную selected_icecream запишите
+        # название мороженого из POST-запроса
+        selected_icecream = request.POST['icecream']
+
+
+        # записали название города в переменную city
+        city = friends_db[selected_friend]
+        # Запросили погоду в городе city
+        weather = what_weather(city)
+
+        # Вместо слова "мороженое" выведите название сорта из запроса.
+        friend_output = f'{selected_friend}, тебе прислали {selected_icecream}!'
+
+        city_weather = f'В городе {city} погода: {weather}'
+
+    В homepage/index.html выведем список сортов
+    <!-- Сюда выведите список сортов мороженого с радио-кнопками. -->
+        {{icecream_db[i]['name']|safe}}
+
+5. Прописать рекомендации мороженого с погодой
+    def what_conclusion(parsed_temperature):
+        try:
+            temperature = int(parsed_temperature)
+        if parsed_temperature <18:
+            return 'холодно'
+        if parsed_temperature >18 and parsed_temperature <27:
+            return 'в самый раз'
+        else:
+            return 'жарко'    
+    except ValueError:
+        return "Не могу узнать погоду..."
+
+    Импортируйте в файл homepage/views.py функцию what_conclusion() из anfisa/services.py
+    from anfisa.services import what_weather, what_temperature,what_conclusion
+    И
+    Добавить в контекст
+        context = {
+        'icecreams': icecreams,
+        'friends': friends,
+        'friend_output': friend_output,
+        'city_weather': city_weather,
+        # Передайте значение conclusion в шаблон
+        'conclusion':conclusion,
+    }
+    return render(request, 'homepage/index.html', context)
