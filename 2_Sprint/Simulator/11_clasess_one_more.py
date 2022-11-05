@@ -5,8 +5,7 @@ class Human:
     def answer_question(self, question):
         print('Очень интересный вопрос! Не знаю.')
     
-    def __str__(self):
-        print(f'{self.name}')
+
 
 class Student(Human):
     def __init__(self, name):
